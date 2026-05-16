@@ -1,0 +1,233 @@
+/* ============================================
+   reminders.css - Reminders modal styles
+   ============================================ */
+
+/* Reminders modal is wider */
+#reminders-modal .modal {
+  max-width: 560px;
+}
+
+.reminders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  transition: background var(--transition), border-color var(--transition);
+  position: relative;
+}
+
+.reminder-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.reminder-item.done {
+  opacity: 0.6;
+  background: var(--bg-secondary);
+}
+
+.reminder-item.done .reminder-title {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+.reminder-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  transition: all var(--transition);
+}
+
+.reminder-check:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.reminder-check.checked {
+  background: #1a7f37;
+  border-color: #1a7f37;
+  color: white;
+}
+
+.reminder-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.reminder-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.reminder-description {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.reminder-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.reminder-time.upcoming {
+  color: var(--accent);
+}
+
+.reminder-time.overdue {
+  color: #dc2626;
+}
+
+.reminder-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.reminder-item:hover .reminder-actions {
+  opacity: 1;
+}
+
+/* Add reminder form */
+.add-reminder-form {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 8px;
+}
+
+.add-reminder-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color var(--transition);
+}
+
+.add-reminder-toggle:hover {
+  color: var(--accent);
+}
+
+/* Reminder bell animation */
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(15deg); }
+  20% { transform: rotate(-15deg); }
+  30% { transform: rotate(10deg); }
+  40% { transform: rotate(-10deg); }
+  50% { transform: rotate(5deg); }
+  60% { transform: rotate(-5deg); }
+}
+
+.bell-icon.ringing {
+  animation: bell-ring 0.8s ease;
+}
+
+/* Reminder notification popup */
+.reminder-notification {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  max-width: 320px;
+  z-index: 9998;
+  animation: slideUp 0.3s ease;
+}
+
+.reminder-notification-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.reminder-notification-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-light);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reminder-notification-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.reminder-notification-body {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.reminder-notification-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Empty reminders */
+.reminders-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--text-tertiary);
+  text-align: center;
+  gap: 8px;
+}
+
+.reminders-empty-icon {
+  font-size: 2rem;
+  opacity: 0.4;
+}
+
+/* Reminder priority indicator */
+.reminder-priority-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.reminder-priority-dot.high { background: #dc2626; }
+.reminder-priority-dot.medium { background: #b45309; }
+.reminder-priority-dot.low { background: #9b9a97; }
