@@ -499,6 +499,7 @@ const App = (() => {
     Router.init();
     Search.init();
     Reminders.startReminderCheck();
+    Agent.init();
 
     // Open reminders from sidebar badge
     document.addEventListener('click', (e) => {
@@ -531,7 +532,7 @@ const App = (() => {
     });
   }
 
-  return { init };
+  return { init, _renderDashboard: renderDashboard };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

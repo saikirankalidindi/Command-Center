@@ -99,12 +99,13 @@ const Projects = (() => {
   // ============================================
   // Table View
   // ============================================
+  let selectedProjectIds = new Set();
+
   function renderTableView(container) {
     const projects = getFilteredProjects();
 
     projects.sort((a, b) => {
-      let va = a[sortField] || '';
-      let vb = b[sortField] || '';
+      let va = a[sortField] || '', vb = b[sortField] || '';
       if (typeof va === 'string') va = va.toLowerCase();
       if (typeof vb === 'string') vb = vb.toLowerCase();
       if (va < vb) return sortDir === 'asc' ? -1 : 1;
@@ -112,62 +113,83 @@ const Projects = (() => {
       return 0;
     });
 
-    const columns = [
-      { field: 'name', label: 'Name' },
-      { field: 'status', label: 'Status' },
-      { field: 'priority', label: 'Priority' },
-      { field: 'endDate', label: 'Due Date' },
-      { field: '_tasks', label: 'Tasks' },
-      { field: '_actions', label: '' }
-    ];
-
     const wrapper = document.createElement('div');
     wrapper.className = 'tasks-table-wrapper';
 
     if (projects.length === 0) {
-      wrapper.innerHTML = `
-        <div class="empty-state">
-          ${Utils.icons.projects}
-          <p>No projects found. Create your first project!</p>
-        </div>`;
+      wrapper.innerHTML = `<div class="empty-state">${Utils.icons.projects}<p>No projects found. Create your first project!</p></div>`;
       container.appendChild(wrapper);
       return;
     }
+
+    // Bulk action bar
+    const bulkBar = document.createElement('div');
+    bulkBar.className = 'bulk-action-bar';
+    bulkBar.id = 'proj-bulk-bar';
+    bulkBar.style.display = 'none';
+    bulkBar.innerHTML = `
+      <span class="bulk-count" id="proj-bulk-count">0 selected</span>
+      <div class="bulk-actions">
+        <select class="bulk-status-select" id="proj-bulk-status">
+          <option value="">Change status…</option>
+          ${['not-started','in-progress','done','backlog'].map(s =>
+            `<option value="${s}">${s.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>`
+          ).join('')}
+        </select>
+        <button class="btn btn-danger btn-sm" id="proj-bulk-delete">
+          ${Utils.icons.trash} Delete selected
+        </button>
+        <button class="btn btn-secondary btn-sm" id="proj-bulk-clear">Clear</button>
+      </div>
+    `;
+    container.appendChild(bulkBar);
 
     const table = document.createElement('table');
     table.className = 'tasks-table';
 
     const thead = document.createElement('thead');
-    thead.innerHTML = `<tr>${columns.map(col => {
-      if (col.field === '_actions' || col.field === '_tasks') return `<th style="width:${col.field === '_tasks' ? '100px' : '80px'}">${col.label}</th>`;
-      const isSorted = sortField === col.field;
-      return `<th data-field="${col.field}" class="${isSorted ? 'sorted' : ''}">
-        ${col.label}
-        <span class="sort-icon">${isSorted ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
-      </th>`;
-    }).join('')}</tr>`;
+    thead.innerHTML = `<tr>
+      <th style="width:36px">
+        <input type="checkbox" id="proj-select-all" title="Select all" style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent)" />
+      </th>
+      <th data-field="name" class="${sortField==='name'?'sorted':''}">Name <span class="sort-icon">${sortField==='name'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th data-field="status" class="${sortField==='status'?'sorted':''}">Status <span class="sort-icon">${sortField==='status'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th data-field="priority" class="${sortField==='priority'?'sorted':''}">Priority <span class="sort-icon">${sortField==='priority'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th data-field="endDate" class="${sortField==='endDate'?'sorted':''}">Due Date <span class="sort-icon">${sortField==='endDate'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th>Tasks</th>
+      <th style="width:80px"></th>
+    </tr>`;
     table.appendChild(thead);
 
     thead.querySelectorAll('th[data-field]').forEach(th => {
       th.addEventListener('click', () => {
-        if (sortField === th.dataset.field) {
-          sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-        } else {
-          sortField = th.dataset.field;
-          sortDir = 'asc';
-        }
+        sortDir = sortField === th.dataset.field && sortDir === 'asc' ? 'desc' : 'asc';
+        sortField = th.dataset.field;
         renderView(container);
       });
+    });
+
+    const selectAllCb = thead.querySelector('#proj-select-all');
+    selectAllCb.addEventListener('change', () => {
+      if (selectAllCb.checked) projects.forEach(p => selectedProjectIds.add(p.id));
+      else selectedProjectIds.clear();
+      updateProjBulkBar(bulkBar, projects);
+      tbody.querySelectorAll('.proj-row-cb').forEach(cb => { cb.checked = selectAllCb.checked; });
+      tbody.querySelectorAll('tr').forEach(tr => tr.classList.toggle('selected', selectAllCb.checked));
     });
 
     const tbody = document.createElement('tbody');
     projects.forEach(project => {
       const tr = document.createElement('tr');
+      if (selectedProjectIds.has(project.id)) tr.classList.add('selected');
       const taskCount = Store.projects.getTaskCount(project.id);
       const completedCount = Store.projects.getCompletedTaskCount(project.id);
       const isOverdue = Utils.isOverdue(project.endDate) && project.status !== 'done';
 
       tr.innerHTML = `
+        <td onclick="event.stopPropagation()">
+          <input type="checkbox" class="proj-row-cb" data-id="${project.id}" ${selectedProjectIds.has(project.id)?'checked':''} style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent)" />
+        </td>
         <td>
           <div class="project-name-cell">
             <div class="project-icon">📁</div>
@@ -176,19 +198,13 @@ const Projects = (() => {
         </td>
         <td>${Utils.statusBadge(project.status)}</td>
         <td>${Utils.priorityBadge(project.priority)}</td>
-        <td>
-          <span style="font-size:0.8125rem;color:${isOverdue ? '#dc2626' : 'var(--text-secondary)'}">
-            ${project.endDate ? Utils.formatDate(project.endDate) : '—'}
-            ${isOverdue ? ' ⚠' : ''}
-          </span>
-        </td>
+        <td><span style="font-size:0.8125rem;color:${isOverdue?'#dc2626':'var(--text-secondary)'}">
+          ${project.endDate?Utils.formatDate(project.endDate):'—'}${isOverdue?' ⚠':''}
+        </span></td>
         <td>
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="font-size:0.8125rem;color:var(--text-secondary)">${completedCount}/${taskCount}</span>
-            ${taskCount > 0 ? `
-              <div class="progress-bar" style="width:60px">
-                <div class="progress-bar-fill ${project.status === 'done' ? 'done' : ''}" style="width:${taskCount > 0 ? Math.round(completedCount/taskCount*100) : 0}%"></div>
-              </div>` : ''}
+            ${taskCount > 0 ? `<div class="progress-bar" style="width:60px"><div class="progress-bar-fill ${project.status==='done'?'done':''}" style="width:${Math.round(completedCount/taskCount*100)}%"></div></div>` : ''}
           </div>
         </td>
         <td>
@@ -199,19 +215,21 @@ const Projects = (() => {
         </td>
       `;
 
-      tr.querySelector('.task-name-text').addEventListener('click', () => {
-        showProjectModal(project, () => renderView(container));
+      tr.querySelector('.proj-row-cb').addEventListener('change', (e) => {
+        if (e.target.checked) selectedProjectIds.add(project.id);
+        else selectedProjectIds.delete(project.id);
+        tr.classList.toggle('selected', e.target.checked);
+        updateProjBulkBar(bulkBar, projects);
+        selectAllCb.checked = projects.every(p => selectedProjectIds.has(p.id));
+        selectAllCb.indeterminate = selectedProjectIds.size > 0 && !selectAllCb.checked;
       });
-
-      tr.querySelector('.edit-proj-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        showProjectModal(project, () => renderView(container));
-      });
-
+      tr.querySelector('.task-name-text').addEventListener('click', () => showProjectModal(project, () => renderView(container)));
+      tr.querySelector('.edit-proj-btn').addEventListener('click', (e) => { e.stopPropagation(); showProjectModal(project, () => renderView(container)); });
       tr.querySelector('.delete-proj-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         if (confirm(`Delete "${project.name}"? This will unlink all associated tasks.`)) {
           Store.projects.delete(project.id);
+          selectedProjectIds.delete(project.id);
           Utils.toast('Project deleted', 'error');
           renderView(container);
         }
@@ -223,6 +241,36 @@ const Projects = (() => {
     table.appendChild(tbody);
     wrapper.appendChild(table);
     container.appendChild(wrapper);
+
+    bulkBar.querySelector('#proj-bulk-status').addEventListener('change', (e) => {
+      const status = e.target.value;
+      if (!status) return;
+      selectedProjectIds.forEach(id => Store.projects.update(id, { status }));
+      Utils.toast(`Updated ${selectedProjectIds.size} projects to "${status}"`, 'success');
+      selectedProjectIds.clear();
+      e.target.value = '';
+      renderView(container);
+    });
+    bulkBar.querySelector('#proj-bulk-delete').addEventListener('click', () => {
+      if (!confirm(`Delete ${selectedProjectIds.size} selected projects?`)) return;
+      selectedProjectIds.forEach(id => Store.projects.delete(id));
+      Utils.toast(`Deleted ${selectedProjectIds.size} projects`, 'error');
+      selectedProjectIds.clear();
+      renderView(container);
+    });
+    bulkBar.querySelector('#proj-bulk-clear').addEventListener('click', () => {
+      selectedProjectIds.clear();
+      renderView(container);
+    });
+
+    updateProjBulkBar(bulkBar, projects);
+  }
+
+  function updateProjBulkBar(bar, projects) {
+    const count = selectedProjectIds.size;
+    bar.style.display = count > 0 ? 'flex' : 'none';
+    const countEl = bar.querySelector('#proj-bulk-count');
+    if (countEl) countEl.textContent = `${count} selected`;
   }
 
   // ============================================

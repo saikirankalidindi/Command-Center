@@ -637,3 +637,58 @@ input[type="checkbox"] {
   overflow: hidden;
   animation: fadeIn 0.1s ease;
 }
+
+/* ============================================
+   Bulk action bar (tasks & projects)
+   ============================================ */
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--text-primary);
+  color: var(--bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  animation: slideUp 0.15s ease;
+  flex-wrap: wrap;
+}
+
+.bulk-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bulk-status-select {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white;
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 0.8125rem;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  width: auto;
+}
+
+.bulk-status-select option {
+  background: var(--text-primary);
+  color: var(--bg);
+}
+
+/* Selected row highlight */
+.tasks-table tr.selected td {
+  background: var(--accent-light);
+}
+
+[data-theme="dark"] .tasks-table tr.selected td {
+  background: rgba(74, 158, 255, 0.1);
+}

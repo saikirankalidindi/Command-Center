@@ -103,13 +103,13 @@ const Tasks = (() => {
   // ============================================
   // Table View
   // ============================================
+  let selectedTaskIds = new Set();
+
   function renderTableView(container) {
     const tasks = getFilteredTasks();
 
-    // Sort
     tasks.sort((a, b) => {
-      let va = a[sortField] || '';
-      let vb = b[sortField] || '';
+      let va = a[sortField] || '', vb = b[sortField] || '';
       if (typeof va === 'string') va = va.toLowerCase();
       if (typeof vb === 'string') vb = vb.toLowerCase();
       if (va < vb) return sortDir === 'asc' ? -1 : 1;
@@ -117,87 +117,103 @@ const Tasks = (() => {
       return 0;
     });
 
-    const columns = [
-      { field: 'name', label: 'Name' },
-      { field: 'status', label: 'Status' },
-      { field: 'priority', label: 'Priority' },
-      { field: 'energy', label: 'Energy' },
-      { field: 'endDate', label: 'Due Date' },
-      { field: 'projectId', label: 'Project' },
-      { field: '_actions', label: '' }
-    ];
-
     const wrapper = document.createElement('div');
     wrapper.className = 'tasks-table-wrapper';
 
     if (tasks.length === 0) {
-      wrapper.innerHTML = `
-        <div class="empty-state">
-          ${Utils.icons.tasks}
-          <p>No tasks found. Add your first task!</p>
-        </div>`;
+      wrapper.innerHTML = `<div class="empty-state">${Utils.icons.tasks}<p>No tasks found. Add your first task!</p></div>`;
       container.appendChild(wrapper);
       return;
     }
 
+    // Bulk action bar
+    const bulkBar = document.createElement('div');
+    bulkBar.className = 'bulk-action-bar';
+    bulkBar.id = 'task-bulk-bar';
+    bulkBar.style.display = 'none';
+    bulkBar.innerHTML = `
+      <span class="bulk-count" id="task-bulk-count">0 selected</span>
+      <div class="bulk-actions">
+        <select class="bulk-status-select" id="task-bulk-status">
+          <option value="">Change status…</option>
+          ${['not-started','in-progress','done','blocked','backlog'].map(s =>
+            `<option value="${s}">${s.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>`
+          ).join('')}
+        </select>
+        <button class="btn btn-danger btn-sm" id="task-bulk-delete">
+          ${Utils.icons.trash} Delete selected
+        </button>
+        <button class="btn btn-secondary btn-sm" id="task-bulk-clear">Clear</button>
+      </div>
+    `;
+    container.appendChild(bulkBar);
+
     const table = document.createElement('table');
     table.className = 'tasks-table';
 
-    // Header
     const thead = document.createElement('thead');
-    thead.innerHTML = `<tr>${columns.map(col => {
-      if (col.field === '_actions') return '<th style="width:80px"></th>';
-      const isSorted = sortField === col.field;
-      return `<th data-field="${col.field}" class="${isSorted ? 'sorted' : ''}">
-        ${col.label}
-        <span class="sort-icon">${isSorted ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
-      </th>`;
-    }).join('')}</tr>`;
+    thead.innerHTML = `<tr>
+      <th style="width:36px">
+        <input type="checkbox" id="task-select-all" title="Select all" style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent)" />
+      </th>
+      <th data-field="name" class="${sortField==='name'?'sorted':''}">Name <span class="sort-icon">${sortField==='name'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th data-field="status" class="${sortField==='status'?'sorted':''}">Status <span class="sort-icon">${sortField==='status'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th data-field="priority" class="${sortField==='priority'?'sorted':''}">Priority <span class="sort-icon">${sortField==='priority'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th data-field="energy" class="${sortField==='energy'?'sorted':''}">Energy <span class="sort-icon">${sortField==='energy'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th data-field="endDate" class="${sortField==='endDate'?'sorted':''}">Due Date <span class="sort-icon">${sortField==='endDate'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th data-field="projectId" class="${sortField==='projectId'?'sorted':''}">Project <span class="sort-icon">${sortField==='projectId'?(sortDir==='asc'?'↑':'↓'):'↕'}</span></th>
+      <th style="width:80px"></th>
+    </tr>`;
     table.appendChild(thead);
 
-    // Sort on header click
     thead.querySelectorAll('th[data-field]').forEach(th => {
       th.addEventListener('click', () => {
-        if (sortField === th.dataset.field) {
-          sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-        } else {
-          sortField = th.dataset.field;
-          sortDir = 'asc';
-        }
+        sortField = th.dataset.field;
+        sortDir = sortField === th.dataset.field && sortDir === 'asc' ? 'desc' : 'asc';
+        sortField = th.dataset.field;
         renderView(container);
       });
     });
 
-    // Body
+    // Select all
+    const selectAllCb = thead.querySelector('#task-select-all');
+    selectAllCb.addEventListener('change', () => {
+      if (selectAllCb.checked) {
+        tasks.forEach(t => selectedTaskIds.add(t.id));
+      } else {
+        selectedTaskIds.clear();
+      }
+      updateBulkBar(bulkBar, tasks);
+      tbody.querySelectorAll('.task-row-cb').forEach(cb => { cb.checked = selectAllCb.checked; });
+      tbody.querySelectorAll('tr').forEach(tr => tr.classList.toggle('selected', selectAllCb.checked));
+    });
+
     const tbody = document.createElement('tbody');
     tasks.forEach(task => {
       const tr = document.createElement('tr');
+      if (selectedTaskIds.has(task.id)) tr.classList.add('selected');
       const project = task.projectId ? Store.projects.getById(task.projectId) : null;
       const isOverdue = Utils.isOverdue(task.endDate) && task.status !== 'done';
 
       tr.innerHTML = `
+        <td onclick="event.stopPropagation()">
+          <input type="checkbox" class="task-row-cb" data-id="${task.id}" ${selectedTaskIds.has(task.id)?'checked':''} style="width:14px;height:14px;cursor:pointer;accent-color:var(--accent)" />
+        </td>
         <td>
           <div class="task-name-cell">
-            <div class="task-checkbox ${task.status === 'done' ? 'checked' : ''}" data-id="${task.id}">
-              ${task.status === 'done' ? Utils.icons.check : ''}
+            <div class="task-checkbox ${task.status==='done'?'checked':''}" data-id="${task.id}">
+              ${task.status==='done'?Utils.icons.check:''}
             </div>
-            <span class="task-name-text ${task.status === 'done' ? 'done' : ''}">${Utils.escapeHtml(task.name)}</span>
+            <span class="task-name-text ${task.status==='done'?'done':''}">${Utils.escapeHtml(task.name)}</span>
           </div>
         </td>
         <td>${Utils.statusBadge(task.status)}</td>
         <td>${Utils.priorityBadge(task.priority)}</td>
         <td>${Utils.energyBadge(task.energy)}</td>
-        <td>
-          <span style="font-size:0.8125rem;color:${isOverdue ? '#dc2626' : 'var(--text-secondary)'}">
-            ${task.endDate ? Utils.formatDate(task.endDate) : '—'}
-            ${isOverdue ? ' ⚠' : ''}
-          </span>
-        </td>
-        <td>
-          <span style="font-size:0.8125rem;color:var(--text-secondary)">
-            ${project ? Utils.escapeHtml(project.name) : '—'}
-          </span>
-        </td>
+        <td><span style="font-size:0.8125rem;color:${isOverdue?'#dc2626':'var(--text-secondary)'}">
+          ${task.endDate?Utils.formatDate(task.endDate):'—'}${isOverdue?' ⚠':''}
+        </span></td>
+        <td><span style="font-size:0.8125rem;color:var(--text-secondary)">${project?Utils.escapeHtml(project.name):'—'}</span></td>
         <td>
           <div class="task-actions">
             <button class="btn-icon edit-task-btn" data-id="${task.id}" title="Edit">${Utils.icons.edit}</button>
@@ -206,7 +222,16 @@ const Tasks = (() => {
         </td>
       `;
 
-      // Toggle done
+      // Row checkbox
+      tr.querySelector('.task-row-cb').addEventListener('change', (e) => {
+        if (e.target.checked) selectedTaskIds.add(task.id);
+        else selectedTaskIds.delete(task.id);
+        tr.classList.toggle('selected', e.target.checked);
+        updateBulkBar(bulkBar, tasks);
+        selectAllCb.checked = tasks.every(t => selectedTaskIds.has(t.id));
+        selectAllCb.indeterminate = selectedTaskIds.size > 0 && !selectAllCb.checked;
+      });
+
       tr.querySelector('.task-checkbox').addEventListener('click', (e) => {
         e.stopPropagation();
         const newStatus = task.status === 'done' ? 'not-started' : 'done';
@@ -214,24 +239,19 @@ const Tasks = (() => {
         Utils.toast(newStatus === 'done' ? 'Task completed! ✓' : 'Task reopened', 'success');
         renderView(container);
       });
-
-      // Edit
       tr.querySelector('.edit-task-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         showTaskModal(task, () => renderView(container));
       });
-
-      // Delete
       tr.querySelector('.delete-task-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         if (confirm(`Delete "${task.name}"?`)) {
           Store.tasks.delete(task.id);
+          selectedTaskIds.delete(task.id);
           Utils.toast('Task deleted', 'error');
           renderView(container);
         }
       });
-
-      // Row click to edit
       tr.querySelector('.task-name-text').addEventListener('click', () => {
         showTaskModal(task, () => renderView(container));
       });
@@ -242,6 +262,37 @@ const Tasks = (() => {
     table.appendChild(tbody);
     wrapper.appendChild(table);
     container.appendChild(wrapper);
+
+    // Bulk bar actions
+    bulkBar.querySelector('#task-bulk-status').addEventListener('change', (e) => {
+      const status = e.target.value;
+      if (!status) return;
+      selectedTaskIds.forEach(id => Store.tasks.update(id, { status }));
+      Utils.toast(`Updated ${selectedTaskIds.size} tasks to "${status}"`, 'success');
+      selectedTaskIds.clear();
+      e.target.value = '';
+      renderView(container);
+    });
+    bulkBar.querySelector('#task-bulk-delete').addEventListener('click', () => {
+      if (!confirm(`Delete ${selectedTaskIds.size} selected tasks?`)) return;
+      selectedTaskIds.forEach(id => Store.tasks.delete(id));
+      Utils.toast(`Deleted ${selectedTaskIds.size} tasks`, 'error');
+      selectedTaskIds.clear();
+      renderView(container);
+    });
+    bulkBar.querySelector('#task-bulk-clear').addEventListener('click', () => {
+      selectedTaskIds.clear();
+      renderView(container);
+    });
+
+    updateBulkBar(bulkBar, tasks);
+  }
+
+  function updateBulkBar(bar, tasks) {
+    const count = selectedTaskIds.size;
+    bar.style.display = count > 0 ? 'flex' : 'none';
+    const countEl = bar.querySelector('#task-bulk-count');
+    if (countEl) countEl.textContent = `${count} selected`;
   }
 
   // ============================================
