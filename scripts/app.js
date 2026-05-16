@@ -17,35 +17,38 @@ const App = (() => {
       <div class="sidebar-logo">
         <div class="sidebar-logo-icon">N</div>
         <span class="sidebar-logo-text">Command Center</span>
+        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Collapse sidebar">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
       </div>
 
       <nav class="sidebar-nav">
-        <a class="nav-item" data-route="dashboard" href="#dashboard">
+        <a class="nav-item" data-route="dashboard" href="#dashboard" data-tooltip="Dashboard">
           <span class="nav-icon">${Utils.icons.dashboard}</span>
           <span class="nav-label">Dashboard</span>
         </a>
-        <a class="nav-item" data-route="tasks" href="#tasks">
+        <a class="nav-item" data-route="tasks" href="#tasks" data-tooltip="Tasks">
           <span class="nav-icon">${Utils.icons.tasks}</span>
           <span class="nav-label">Tasks</span>
         </a>
-        <a class="nav-item" data-route="projects" href="#projects">
+        <a class="nav-item" data-route="projects" href="#projects" data-tooltip="Projects">
           <span class="nav-icon">${Utils.icons.projects}</span>
           <span class="nav-label">Projects</span>
         </a>
-        <a class="nav-item" data-route="stats" href="#stats">
+        <a class="nav-item" data-route="stats" href="#stats" data-tooltip="Stats">
           <span class="nav-icon">${Utils.icons.stats}</span>
           <span class="nav-label">Stats</span>
         </a>
-        <a class="nav-item reminders-trigger" id="reminders-nav-btn" href="#" data-route="reminders">
+        <a class="nav-item reminders-trigger" id="reminders-nav-btn" href="#" data-route="reminders" data-tooltip="Reminders">
           <span class="nav-icon">${Utils.icons.reminders}</span>
           <span class="nav-label">Reminders</span>
           ${pendingReminders > 0 ? `<span class="nav-badge">${pendingReminders}</span>` : ''}
         </a>
-        <a class="nav-item" data-route="quick-links" href="#quick-links">
+        <a class="nav-item" data-route="quick-links" href="#quick-links" data-tooltip="Quick Links">
           <span class="nav-icon">${Utils.icons.links}</span>
           <span class="nav-label">Quick Links</span>
         </a>
-        <a class="nav-item" data-route="settings" href="#settings">
+        <a class="nav-item" data-route="settings" href="#settings" data-tooltip="Settings">
           <span class="nav-icon">${Utils.icons.settings}</span>
           <span class="nav-label">Settings</span>
         </a>
@@ -60,9 +63,27 @@ const App = (() => {
       </div>
     `;
 
+    // Reminders modal
     sidebar.querySelector('#reminders-nav-btn').addEventListener('click', (e) => {
       e.preventDefault();
+      closeMobileSidebar();
       Reminders.openModal();
+    });
+
+    // Desktop collapse toggle
+    sidebar.querySelector('#sidebar-toggle-btn').addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+    });
+
+    // Restore collapsed state
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+      sidebar.classList.add('collapsed');
+    }
+
+    // Close mobile sidebar on nav click
+    sidebar.querySelectorAll('.nav-item[href]').forEach(item => {
+      item.addEventListener('click', () => closeMobileSidebar());
     });
   }
 
@@ -88,6 +109,65 @@ const App = (() => {
         </div>
       </div>
     `;
+
+    // Inject mobile topbar into main-content (before search bar)
+    const mainContent = document.getElementById('main-content');
+    if (mainContent && !document.getElementById('topbar-row')) {
+      const topbar = document.createElement('div');
+      topbar.className = 'topbar-row';
+      topbar.id = 'topbar-row';
+      topbar.innerHTML = `
+        <button class="mobile-menu-btn" id="mobile-menu-btn" title="Open menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div style="flex:1;position:relative;">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-tertiary);font-size:0.875rem;pointer-events:none">✦</span>
+          <input type="text" id="mobile-search-input" placeholder='Search or ask anything...'
+            style="padding-left:32px;padding-right:12px;height:34px;border-radius:var(--radius-md);background:var(--bg-secondary);border:1px solid var(--border);font-size:0.875rem;width:100%"
+            autocomplete="off" />
+        </div>
+      `;
+      mainContent.insertBefore(topbar, mainContent.firstChild);
+
+      topbar.querySelector('#mobile-menu-btn').addEventListener('click', openMobileSidebar);
+
+      // Wire mobile search to same handler
+      const mobileInput = topbar.querySelector('#mobile-search-input');
+      mobileInput.addEventListener('input', Utils.debounce(() => {
+        const desktopInput = document.getElementById('search-input');
+        if (desktopInput) {
+          desktopInput.value = mobileInput.value;
+          desktopInput.dispatchEvent(new Event('input'));
+        }
+      }, 300));
+    }
+  }
+
+  // ============================================
+  // Mobile sidebar helpers
+  // ============================================
+  function openMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    sidebar.classList.add('mobile-open');
+    let backdrop = document.getElementById('sidebar-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.className = 'sidebar-backdrop';
+      backdrop.id = 'sidebar-backdrop';
+      document.body.appendChild(backdrop);
+      backdrop.addEventListener('click', closeMobileSidebar);
+    }
+    backdrop.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (backdrop) backdrop.classList.remove('visible');
+    document.body.style.overflow = '';
   }
 
   // ============================================
@@ -501,6 +581,9 @@ const App = (() => {
     Reminders.startReminderCheck();
     Agent.init();
 
+    // Close mobile sidebar on route change
+    window.addEventListener('hashchange', closeMobileSidebar);
+
     // Open reminders from sidebar badge
     document.addEventListener('click', (e) => {
       if (e.target.closest('#open-reminders-btn') || e.target.closest('#open-reminders-header-btn')) {
@@ -532,7 +615,7 @@ const App = (() => {
     });
   }
 
-  return { init, _renderDashboard: renderDashboard };
+  return { init, _renderDashboard: renderDashboard, closeMobileSidebar };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {

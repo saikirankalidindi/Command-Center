@@ -692,3 +692,223 @@ input[type="checkbox"] {
 [data-theme="dark"] .tasks-table tr.selected td {
   background: rgba(74, 158, 255, 0.1);
 }
+
+/* ============================================
+   Responsive layout
+   ============================================ */
+
+/* Topbar mobile row */
+.topbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+/* On desktop the topbar-row is hidden — search bar handles its own layout */
+@media (min-width: 901px) {
+  .topbar-row { display: none; }
+}
+
+/* ── Tablet (≤ 900px) ── */
+@media (max-width: 900px) {
+  body { overflow: auto; }
+
+  #app {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  #main-content {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  /* Hide desktop search bar, show topbar */
+  #search-bar-container { display: none; }
+
+  #page-content {
+    overflow-y: visible;
+    padding: 20px 16px 80px; /* bottom pad for FAB */
+  }
+
+  /* Dashboard grids → 1 col */
+  .dashboard-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-greeting-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .plan-my-day-card {
+    width: 100% !important;
+  }
+
+  .dashboard-greeting-title {
+    font-size: 1.75rem !important;
+  }
+
+  /* Stats grid → 2 col */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .stats-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stats-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Quick links gallery → 3 col */
+  .quicklinks-block-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  .quicklinks-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+  }
+
+  /* Settings layout → 1 col */
+  .settings-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Kanban → horizontal scroll */
+  .kanban-board {
+    overflow-x: auto;
+    padding-bottom: 16px;
+  }
+
+  /* Table → horizontal scroll */
+  .tasks-table-wrapper {
+    overflow-x: auto;
+  }
+
+  /* Form rows → 1 col */
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Agent panel */
+  .agent-panel {
+    right: 12px;
+    left: 12px;
+    width: auto !important;
+    bottom: 80px;
+  }
+
+  .agent-fab {
+    bottom: 20px;
+    right: 20px;
+  }
+
+  /* Toast */
+  #toast-container {
+    bottom: 80px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .toast { max-width: 100%; }
+
+  /* Modal full-width on small screens */
+  .modal {
+    margin: 12px;
+    max-width: calc(100vw - 24px) !important;
+    max-height: 90vh;
+  }
+}
+
+/* ── Mobile (≤ 600px) ── */
+@media (max-width: 600px) {
+  #page-content {
+    padding: 16px 12px 80px;
+  }
+
+  .dashboard-greeting-title {
+    font-size: 1.5rem !important;
+  }
+
+  /* Stats → 1 col */
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Quick links → 2 col */
+  .quicklinks-block-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Page header stack */
+  .page-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* View tabs scroll */
+  .view-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  /* Filter bar scroll */
+  .filter-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  /* Bulk bar stack */
+  .bulk-action-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Upcoming table — hide less important cols */
+  .upcoming-table th:nth-child(4),
+  .upcoming-table td:nth-child(4),
+  .upcoming-table th:nth-child(5),
+  .upcoming-table td:nth-child(5) {
+    display: none;
+  }
+
+  /* Section stats row → wrap */
+  .section-stats-row {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .section-stat-value {
+    font-size: 1.25rem !important;
+  }
+
+  /* Overview stats */
+  .overview-stats-row {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .overview-stat-value {
+    font-size: 1.125rem !important;
+  }
+
+  /* Font/theme option grids */
+  .font-options,
+  .theme-options {
+    grid-template-columns: 1fr 1fr 1fr !important;
+  }
+
+  .font-size-options {
+    flex-wrap: wrap;
+  }
+}

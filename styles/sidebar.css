@@ -1,24 +1,43 @@
 /* ============================================
-   sidebar.css - Sidebar navigation styles
+   sidebar.css — Collapsible + responsive sidebar
    ============================================ */
 
+/* ── CSS variables for sidebar widths ── */
+:root {
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 56px;
+}
+
+/* ── Base sidebar ── */
 #sidebar {
   background: var(--bg);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 0;
   width: var(--sidebar-width);
   flex-shrink: 0;
+  height: 100vh;
+  overflow: hidden;
+  transition: width 0.22s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+  z-index: 50;
 }
 
-/* Logo / App name */
+/* ── Collapsed state (desktop) ── */
+#sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+/* ── Logo row ── */
 .sidebar-logo {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px 12px;
+  padding: 13px 14px 11px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 52px;
+  overflow: hidden;
 }
 
 .sidebar-logo-icon {
@@ -33,7 +52,6 @@
   font-size: 0.875rem;
   font-weight: 700;
   flex-shrink: 0;
-  letter-spacing: -0.5px;
 }
 
 .sidebar-logo-text {
@@ -41,13 +59,54 @@
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.15s ease, width 0.15s ease;
 }
 
-/* Navigation */
+/* Collapse toggle button — sits in logo row */
+.sidebar-toggle-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.22s ease;
+}
+.sidebar-toggle-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+/* Rotate arrow when collapsed */
+#sidebar.collapsed .sidebar-toggle-btn {
+  transform: rotate(180deg);
+}
+
+/* Hide text labels when collapsed */
+#sidebar.collapsed .sidebar-logo-text,
+#sidebar.collapsed .nav-label,
+#sidebar.collapsed .nav-badge,
+#sidebar.collapsed .avatar-name,
+#sidebar.collapsed .avatar-chevron {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ── Navigation ── */
 .sidebar-nav {
   flex: 1;
   padding: 8px 6px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-item {
@@ -60,11 +119,13 @@
   color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
-  transition: background var(--transition), color var(--transition);
+  transition: background 0.15s ease, color 0.15s ease;
   user-select: none;
   text-decoration: none;
   position: relative;
   margin-bottom: 1px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .nav-item:hover {
@@ -76,6 +137,36 @@
 .nav-item.active {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+/* Tooltip on collapsed nav items */
+#sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 9px;
+}
+
+#sidebar.collapsed .nav-item::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--text-primary);
+  color: var(--bg);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 200;
+  box-shadow: var(--shadow-md);
+}
+
+#sidebar.collapsed .nav-item:hover::after {
+  opacity: 1;
 }
 
 .nav-icon {
@@ -91,6 +182,7 @@
 .nav-label {
   flex: 1;
   min-width: 0;
+  transition: opacity 0.15s ease;
 }
 
 .nav-badge {
@@ -102,9 +194,10 @@
   border-radius: 100px;
   min-width: 18px;
   text-align: center;
+  transition: opacity 0.15s ease;
 }
 
-/* Sidebar footer - user profile */
+/* ── Footer / avatar ── */
 .sidebar-footer {
   padding: 10px 12px;
   border-top: 1px solid var(--border);
@@ -112,12 +205,16 @@
   align-items: center;
   gap: 9px;
   cursor: pointer;
-  transition: background var(--transition);
-  border-radius: 0;
+  transition: background 0.15s ease;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-.sidebar-footer:hover {
-  background: var(--bg-hover);
+.sidebar-footer:hover { background: var(--bg-hover); }
+
+#sidebar.collapsed .sidebar-footer {
+  justify-content: center;
+  padding: 10px 0;
 }
 
 .avatar {
@@ -148,19 +245,98 @@
   font-weight: 500;
   color: var(--text-primary);
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.15s ease;
 }
 
 .avatar-chevron {
   color: var(--text-tertiary);
   display: flex;
   align-items: center;
+  transition: opacity 0.15s ease;
 }
 
-/* Notification dot */
-.notification-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
+/* ── Mobile overlay backdrop ── */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 49;
+  backdrop-filter: blur(1px);
+  animation: fadeIn 0.2s ease;
+}
+
+.sidebar-backdrop.visible { display: block; }
+
+/* ── Mobile hamburger in topbar ── */
+.mobile-menu-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.mobile-menu-btn:hover { background: var(--bg-hover); }
+
+/* ── Responsive: tablet (≤ 900px) ── */
+@media (max-width: 900px) {
+  :root { --sidebar-width: 220px; }
+
+  #sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.22s ease;
+    box-shadow: var(--shadow-lg);
+    width: var(--sidebar-width) !important; /* always full on mobile */
+  }
+
+  #sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Reset collapsed state on mobile — always show labels */
+  #sidebar.collapsed .nav-label,
+  #sidebar.collapsed .nav-badge,
+  #sidebar.collapsed .avatar-name,
+  #sidebar.collapsed .avatar-chevron,
+  #sidebar.collapsed .sidebar-logo-text {
+    opacity: 1;
+    width: auto;
+    pointer-events: auto;
+  }
+
+  #sidebar.collapsed .nav-item {
+    justify-content: flex-start;
+    padding: 7px 10px;
+  }
+
+  #sidebar.collapsed .sidebar-footer {
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+
+  #sidebar.collapsed .nav-item::after {
+    display: none;
+  }
+
+  .mobile-menu-btn { display: flex; }
+  .sidebar-toggle-btn { display: none; }
+}
+
+/* ── Responsive: mobile (≤ 600px) ── */
+@media (max-width: 600px) {
+  :root { --sidebar-width: 100vw; }
 }
